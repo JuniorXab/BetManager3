@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BetManager Pro</title>
+  <link rel="stylesheet" href="betmanager.css">
+</head>
+<body>
+<div id="app-container">
+<nav id="main-nav" style="display:none">
+  <button onclick="navTo('view-main')" id="nav-main">🏠<br>Inicio</button>
+  <button onclick="navTo('view-football')" id="nav-football">⚽<br>Fútbol</button>
+  <button onclick="navTo('view-nba')" id="nav-nba">🏀<br>NBA</button>
+  <button onclick="navTo('view-combi')" id="nav-combi">🎰<br>Combi</button>
+  <button onclick="navTo('view-reto')" id="nav-reto">🏆<br>Reto</button>
+  <button onclick="navTo('view-stats')" id="nav-stats">📊<br>Historial</button>
+  <button onclick="navTo('view-analisis')" id="nav-analisis">🔍<br>Análisis</button>
+  <button onclick="navTo('view-edu')" id="nav-edu">📖<br>Glosario</button>
+  <button onclick="navTo('view-pro')" id="nav-pro">⚙️<br>Pro</button>
+  <button class="logout-btn" onclick="logout()">🚪<br>Salir</button>
+</nav>
+<button class="dark-toggle" id="dark-toggle" onclick="toggleDark()">🌙</button>
+
+<!-- AUTH -->
+<div id="view-auth" class="view active">
+  <h1 class="app-title">BetManager Pro</h1>
+  <p class="app-subtitle">Gestiona y analiza tus apuestas deportivas</p>
+  <div class="card auth-card">
+    <h3 style="margin-bottom:14px;color:var(--primary)">Ingreso al Sistema</h3>
+    <label>Usuario</label><input type="text" id="auth-email" placeholder="usuario@ejemplo.com">
+    <label>Contraseña</label><input type="password" id="auth-pass" placeholder="••••••••">
+    <button onclick="login()" style="margin-bottom:9px">Iniciar Sesión</button>
+    <button class="btn-secondary" onclick="register()">Crear Cuenta</button>
+  </div>
+</div>
+
+<!-- INICIO -->
+<div id="view-main" class="view">
+  <div class="tilt-banner" id="tilt-banner">
+    ⚠️ <b>¡ALERTA TILT!</b> Llevas 3 pérdidas seguidas.<br>
+    <span style="font-size:.8rem;opacity:.9">Para. Respira. No apuestes por impulso.</span>
+  </div>
+  <div class="card bank-card">
+    <small>Tu Bankroll Actual (COP)</small>
+    <h2 id="bank-display">$0</h2>
+    <div id="bank-diff" style="display:none;font-size:.76rem;font-weight:600;letter-spacing:.5px;margin-bottom:8px"></div>
+    <div class="bank-setup" id="bank-setup-div">
+      <p class="bank-tip">* Mínimo recomendado: $50,000 COP.<br>* Capital exclusivo para apostar.</p>
+      <div class="row">
+        <input type="number" id="new-bank-input" placeholder="Ingresa tu Bankroll" style="margin:0">
+        <button onclick="setBank()" style="width:auto;padding:10px 14px;margin:0">OK</button>
+      </div>
+    </div>
+    <div id="bank-actions-div" style="display:none" class="bank-actions">
+      <button onclick="showBankModal('retirar')" class="btn-secondary" style="font-size:.78rem">💸 Retirar</button>
+      <button onclick="showBankModal('recargar')" style="font-size:.78rem;background:rgba(255,255,255,.2)">➕ Recargar</button>
+    </div>
+  </div>
+  <div class="card" id="meta-card" style="display:none">
+    <div class="section-title">🎯 Mi Meta</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:.82rem;color:var(--text-muted)">Progreso hacia la meta</span>
+      <span id="meta-pct" style="font-weight:700;font-size:.85rem;color:var(--success)">0%</span>
+    </div>
+    <div class="meta-bar-track"><div class="meta-bar-fill" id="meta-bar" style="width:0%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-muted)">
+      <span id="meta-current">$0</span><span id="meta-goal-display">$0</span>
+    </div>
+    <button onclick="editMeta()" class="btn-text" style="margin-top:5px;font-size:.75rem;padding:3px 0">✏️ Cambiar meta</button>
+  </div>
+  <div class="card" id="meta-setup-card" style="display:none">
+    <div class="section-title">🎯 Establecer Meta</div>
+    <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:10px">Define tu bankroll objetivo para retirar ganancias y reiniciar el ciclo.</p>
+    <div class="row">
+      <input type="number" id="meta-input" placeholder="Ej: 500000" style="margin:0">
+      <button onclick="setMeta()" style="width:auto;padding:10px 14px;margin:0">OK</button>
+    </div>
+  </div>
+  <div class="card stats-header" id="quick-stats" style="display:none">
+    <div class="stat-col"><b>Yield</b><span id="qs-yield">0%</span></div>
+    <div class="stat-col"><b>Acierto</b><span id="qs-wr">0%</span></div>
+    <div class="stat-col"><b>Apuestas</b><span id="qs-count">0</span></div>
+    <div class="stat-col"><b>P&G</b><span id="qs-profit">$0</span></div>
+  </div>
+  <div class="card">
+    <div class="section-title">📈 Evolución del Bankroll</div>
+    <canvas id="bankroll-chart"></canvas>
+    <p class="chart-empty" id="chart-empty">Registra apuestas para ver tu evolución</p>
+  </div>
+  <div class="card" id="bank-log-card" style="display:none">
+    <div class="section-title">📋 Movimientos de Bankroll</div>
+    <div id="bank-log-list"></div>
+  </div>
+</div>
+
+<!-- FÚTBOL -->
+<div id="view-football" class="view">
+  <div class="card">
+    <h3 style="margin-bottom:13px;color:var(--primary)">⚽ Nueva Apuesta de Fútbol</h3>
+    <div class="warn-box" id="pro-warn-fb"></div>
+    <label>Liga:</label>
+    <select id="fb-league" onchange="loadTeams()">
+      <option value="">Selecciona Liga...</option>
+      <option>Premier League</option><option>La Liga</option><option>Serie A</option>
+      <option>Bundesliga</option><option>Ligue 1</option><option>Liga BetPlay</option>
+      <option>Champions League</option><option>Europa League</option><option>Liga MX</option>
+      <option>Eredivisie</option><option>Liga Argentina</option><option>Copa Libertadores</option><option>MLS</option>
+    </select>
+    <div class="row">
+      <div class="col"><label>Local:</label><select id="fb-local" onchange="updateDynamicMarkets('fb')"><option>Elige Liga primero</option></select></div>
+      <div class="col"><label>Visitante:</label><select id="fb-away" onchange="updateDynamicMarkets('fb')"><option>Elige Liga primero</option></select></div>
+    </div>
+    <hr>
+    <label>Tipo de Apuesta:</label>
+    <select id="fb-market" onchange="updateDynamicMarkets('fb')">
+      <option value="">Selecciona mercado...</option>
+      <option>1X2</option><option>Doble Oportunidad</option><option>Ambos Marcan</option>
+      <option>Goles</option><option>Goles 1H</option><option>Corners</option><option>Tarjetas</option>
+      <option>Jugador</option><option>Handicap</option><option>Handicap Asiatico</option>
+      <option>Resultado Exacto</option><option>Personalizado</option>
+    </select>
+    <div id="fb-dynamic-container"></div>
+    <hr>
+    <div class="section-title">💰 Stake y Cuota</div>
+    <div class="stake-box">
+      <label>Stake (1–10): <span id="fb-stake-val">1</span></label>
+      <input type="range" id="fb-stake" min="1" max="10" value="1" oninput="calculateBetAmount('fb')">
+      <p class="auto-calc">Se invertirá el <b id="fb-stake-pct">2%</b> del Bankroll inicial</p>
+    </div>
+    <div class="row">
+      <div class="col"><label>Cuota (@)</label><input type="number" step="0.01" id="fb-odds" placeholder="Ej: 1.80"></div>
+      <div class="col"><label>Monto</label><input type="number" id="fb-money" readonly></div>
+    </div>
+    <label>Resultado:</label>
+    <select id="fb-result">
+      <option value="Pendiente">⏳ Pendiente</option><option value="Ganada">✅ Ganada</option>
+      <option value="Perdida">❌ Perdida</option><option value="Nula">🔄 Nula</option>
+    </select>
+    <label>Notas (opcional)</label>
+    <textarea id="fb-notes" rows="2" placeholder="Ej: Local en racha, portero descansa..."></textarea>
+    <div class="row">
+      <button onclick="saveBet('Futbol')" class="btn-success">✔ Guardar</button>
+      <button onclick="clearForm('fb')" class="btn-secondary" style="width:110px">Limpiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NBA -->
+<div id="view-nba" class="view">
+  <div class="card">
+    <h3 style="margin-bottom:13px;color:var(--primary)">🏀 Nueva Apuesta NBA</h3>
+    <div class="warn-box" id="pro-warn-nba"></div>
+    <div class="row">
+      <div class="col"><label>Local:</label><select id="nba-local" onchange="updateDynamicMarkets('nba')"></select></div>
+      <div class="col"><label>Visitante:</label><select id="nba-away" onchange="updateDynamicMarkets('nba')"></select></div>
+    </div>
+    <hr>
+    <label>Tipo de Apuesta:</label>
+    <select id="nba-market" onchange="updateDynamicMarkets('nba')">
+      <option value="">Selecciona mercado...</option>
+      <optgroup label="── PARTIDO ──"><option>Ganador</option><option>Handicap</option><option>Puntos Totales</option></optgroup>
+      <optgroup label="── 1ª MITAD ──"><option>Ganador 1H</option><option>Puntos 1H</option></optgroup>
+      <optgroup label="── CUARTOS ──"><option>Ganador Cuarto</option><option>Puntos Cuarto</option></optgroup>
+      <optgroup label="── JUGADOR ──"><option>Props Jugador</option><option>Doble Doble</option><option>Triple Doble</option></optgroup>
+      <option>Personalizado NBA</option>
+    </select>
+    <div id="nba-dynamic-container"></div>
+    <hr>
+    <div class="section-title">💰 Stake y Cuota</div>
+    <div class="stake-box">
+      <label>Stake (1–10): <span id="nba-stake-val">1</span></label>
+      <input type="range" id="nba-stake" min="1" max="10" value="1" oninput="calculateBetAmount('nba')">
+      <p class="auto-calc">Se invertirá el <b id="nba-stake-pct">2%</b> del Bankroll inicial</p>
+    </div>
+    <div class="row">
+      <div class="col"><label>Cuota (@)</label><input type="number" step="0.01" id="nba-odds" placeholder="Ej: 1.90"></div>
+      <div class="col"><label>Monto</label><input type="number" id="nba-money" readonly></div>
+    </div>
+    <label>Resultado:</label>
+    <select id="nba-result">
+      <option value="Pendiente">⏳ Pendiente</option><option value="Ganada">✅ Ganada</option>
+      <option value="Perdida">❌ Perdida</option><option value="Nula">🔄 Nula</option>
+    </select>
+    <label>Notas (opcional)</label>
+    <textarea id="nba-notes" rows="2" placeholder="Ej: Back-to-back, baja estrella..."></textarea>
+    <div class="row">
+      <button onclick="saveBet('NBA')" class="btn-success">✔ Guardar</button>
+      <button onclick="clearForm('nba')" class="btn-secondary" style="width:110px">Limpiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMBINADA -->
+<div id="view-combi" class="view">
+  <div class="card">
+    <h3 style="margin-bottom:4px;color:var(--primary)">🎰 Apuesta Combinada</h3>
+    <p style="font-size:.76rem;color:var(--text-muted);margin-bottom:14px">Añade selecciones. La cuota total se calcula automáticamente.</p>
+    <div id="combi-selections"></div>
+    <button onclick="addCombiSelection()" class="btn-secondary" style="margin-bottom:14px;border:1.5px dashed var(--secondary);background:none;color:var(--secondary)">＋ Añadir selección</button>
+    <hr>
+    <div class="combi-summary" id="combi-summary" style="display:none">
+      <div class="combi-summary-row"><span>Selecciones</span><b id="combi-count">0</b></div>
+      <div class="combi-summary-row"><span>Cuota Total</span><b id="combi-total-odds" style="color:var(--primary);font-size:1.05rem">1.00</b></div>
+      <div class="combi-summary-row"><span>Ganancia potencial</span><b id="combi-potential" style="color:var(--success)">$0</b></div>
+    </div>
+    <div class="section-title" style="margin-top:13px">💰 Stake</div>
+    <div class="stake-box">
+      <label>Stake (1–10): <span id="combi-stake-val">1</span></label>
+      <input type="range" id="combi-stake" min="1" max="10" value="1" oninput="updateCombiOdds()">
+      <p class="auto-calc">Se invertirá el <b id="combi-stake-pct">2%</b> del Bankroll inicial</p>
+    </div>
+    <div class="row">
+      <div class="col"><label>Monto</label><input type="number" id="combi-money" readonly></div>
+      <div class="col"><label>Resultado</label>
+        <select id="combi-result">
+          <option value="Pendiente">⏳ Pendiente</option><option value="Ganada">✅ Ganada</option>
+          <option value="Perdida">❌ Perdida</option><option value="Nula">🔄 Nula</option>
+        </select>
+      </div>
+    </div>
+    <label>Notas (opcional)</label>
+    <textarea id="combi-notes" rows="2" placeholder="Ej: Todos locales en racha..."></textarea>
+    <div class="row">
+      <button onclick="saveCombi()" class="btn-success">✔ Guardar Combinada</button>
+      <button onclick="clearCombi()" class="btn-secondary" style="width:110px">Limpiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETOS -->
+<div id="view-reto" class="view">
+  <!-- HOME -->
+  <div id="reto-home">
+    <div class="card">
+      <h3 style="margin-bottom:4px;color:var(--primary)">🏆 Modo Reto</h3>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:14px">Elige tu reto y demuestra tu disciplina.</p>
+      <div id="reto-template-list"></div>
+    </div>
+    <div class="card" id="reto-past-card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">📋 Historial de Retos</div>
+        <button onclick="clearRetoHistory()" class="btn-danger" style="width:auto;padding:6px 12px;font-size:.73rem">🗑 Borrar todo</button>
+      </div>
+      <div id="reto-past-list"></div>
+    </div>
+  </div>
+  <!-- SETUP -->
+  <div id="reto-setup-view" style="display:none">
+    <div class="card reto-setup">
+      <h3 id="reto-setup-title" style="margin-bottom:12px;color:var(--primary)">Configurar Reto</h3>
+      <label>Nombre del reto</label><input type="text" id="reto-name" placeholder="Ej: Escalera Mayo">
+      <div id="reto-bank-row">
+        <label>Bank inicial del reto (COP)</label><input type="number" id="reto-initial" placeholder="Ej: 50000">
+      </div>
+      <div id="reto-sport-row">
+        <label>Deporte preferido</label>
+        <select id="reto-sport"><option value="Futbol">⚽ Fútbol</option><option value="NBA">🏀 NBA</option><option value="Cualquiera">🎯 Cualquiera</option></select>
+      </div>
+      <div id="reto-setup-info" style="background:var(--input-bg);padding:12px;border-radius:8px;margin-bottom:12px;font-size:.8rem;color:var(--text-muted);line-height:1.6"></div>
+      <div class="row">
+        <button onclick="startReto()" class="btn-success">🚀 Comenzar</button>
+        <button onclick="cancelRetoSetup()" class="btn-secondary" style="width:110px">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <!-- ACTIVO -->
+  <div id="reto-active-view" style="display:none">
+    <!-- Escalera / Cuota Alta -->
+    <div id="reto-ladder-view">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="reto-bank-display">
+          <div class="reto-bank-label">Bank del Reto</div>
+          <div class="reto-bank-val" id="reto-bank-val">$0</div>
+          <div style="font-size:.75rem;opacity:.8;margin-top:3px">Meta: <span id="reto-goal-val">$0</span></div>
+        </div>
+        <div style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-bottom:4px">
+            <span id="reto-active-name">Reto</span><span id="reto-pct">0%</span>
+          </div>
+          <div class="reto-progress-bar"><div class="reto-progress-fill" id="reto-prog-fill" style="width:0%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:.73rem;color:var(--text-muted)">
+            <span id="reto-start-lbl">Inicio</span><span id="reto-end-lbl">Meta</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">➕ Registrar Apuesta</div>
+        <label>Partido / Evento</label><input type="text" id="reto-match" placeholder="Ej: Real Madrid vs Barcelona">
+        <label>Tu selección (Pick)</label><input type="text" id="reto-pick" placeholder="Ej: Gana Real Madrid">
+        <div class="row">
+          <div class="col"><label>Cuota (@)</label><input type="number" step="0.01" id="reto-odds" placeholder="Ej: 1.55"></div>
+          <div class="col"><label>Monto (COP)</label><input type="number" id="reto-amount" placeholder="Monto"></div>
+        </div>
+        <label>Resultado</label>
+        <select id="reto-result">
+          <option value="Pendiente">⏳ Pendiente</option><option value="Ganada">✅ Ganada</option>
+          <option value="Perdida">❌ Perdida</option><option value="Nula">🔄 Nula</option>
+        </select>
+        <div class="row">
+          <button onclick="addLadderBet()" class="btn-success">✔ Guardar</button>
+          <button onclick="abandonReto()" class="btn-danger" style="width:130px">🚩 Abandonar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">💡 Consejos</div>
+        <div id="reto-tips-content"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">📋 Apuestas del Reto</div>
+        <div id="reto-ladder-bets"><p style="color:var(--text-muted);font-size:.83rem;text-align:center;padding:14px 0">Sin apuestas todavía</p></div>
+      </div>
+    </div>
+    <!-- Racha -->
+    <div id="reto-streak-view" style="display:none">
+      <div class="card" style="text-align:center;padding:20px">
+        <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px" id="streak-name">Reto Racha</div>
+        <div style="font-size:3.5rem;font-weight:900;color:var(--primary)" id="streak-current">0</div>
+        <div style="font-size:.82rem;color:var(--text-muted)">de <b id="streak-target">5</b> ganadas seguidas</div>
+        <div class="reto-progress-bar" style="margin:12px 0"><div class="reto-progress-fill" id="streak-fill" style="width:0%"></div></div>
+        <div id="streak-dots" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">➕ Registrar Apuesta</div>
+        <label>Partido / Evento</label><input type="text" id="streak-match" placeholder="Ej: Bayern vs Dortmund">
+        <label>Tu selección (Pick)</label><input type="text" id="streak-pick" placeholder="Ej: Gana Bayern">
+        <div class="row">
+          <div class="col"><label>Cuota (@)</label><input type="number" step="0.01" id="streak-odds" placeholder="Ej: 1.50"></div>
+          <div class="col"><label>Monto (COP)</label><input type="number" id="streak-amount" placeholder="Monto"></div>
+        </div>
+        <label>Resultado</label>
+        <select id="streak-result">
+          <option value="Pendiente">⏳ Pendiente</option><option value="Ganada">✅ Ganada</option>
+          <option value="Perdida">❌ Perdida</option><option value="Nula">🔄 Nula</option>
+        </select>
+        <div class="row">
+          <button onclick="addStreakBet()" class="btn-success">✔ Guardar</button>
+          <button onclick="abandonReto()" class="btn-danger" style="width:130px">🚩 Abandonar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">📋 Apuestas del Reto</div>
+        <div id="reto-streak-bets"><p style="color:var(--text-muted);font-size:.83rem;text-align:center;padding:14px 0">Sin apuestas todavía</p></div>
+      </div>
+    </div>
+    <!-- Trivia -->
+    <div id="reto-trivia-view" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="section-title" style="margin:0" id="trivia-reto-name">Trivia</div>
+          <button onclick="abandonReto()" class="btn-danger" style="width:auto;padding:5px 12px;font-size:.73rem">Abandonar</button>
+        </div>
+        <div class="trivia-lives" id="trivia-lives">❤️❤️❤️</div>
+        <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-bottom:4px">
+          <span>Correctas: <b id="trivia-correct">0</b>/10</span>
+          <span id="trivia-q-num">Pregunta 1/10</span>
+        </div>
+        <div class="trivia-score-bar"><div class="trivia-score-fill" id="trivia-score-fill" style="width:0%"></div></div>
+        <div class="trivia-question" id="trivia-question">Cargando pregunta...</div>
+        <div id="trivia-options"></div>
+        <div id="trivia-feedback" style="display:none;padding:10px;border-radius:8px;font-size:.82rem;text-align:center;margin-top:8px;font-weight:700"></div>
+        <button id="trivia-next-btn" onclick="nextTriviaQuestion()" style="display:none;margin-top:10px" class="btn-secondary">Siguiente ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIAL -->
+<div id="view-stats" class="view">
+  <div class="card stats-header">
+    <div class="stat-col"><b>Yield</b><span id="st-yield">0%</span></div>
+    <div class="stat-col"><b>Acierto</b><span id="st-winrate">0%</span></div>
+    <div class="stat-col"><b>P&G</b><span id="st-profit">$0</span></div>
+  </div>
+  <div class="counters">
+    <span>✅ <b id="st-won">0</b></span><span>❌ <b id="st-lost">0</b></span>
+    <span>⏳ <b id="st-pending">0</b></span><span>📝 <b id="st-total">0</b></span>
+  </div>
+  <div class="filters">
+    <button onclick="renderHistory('Todas',this)" class="active-filter">Todas</button>
+    <button onclick="renderHistory('Ganada',this)">✅ Ganadas</button>
+    <button onclick="renderHistory('Perdida',this)">❌ Perdidas</button>
+    <button onclick="renderHistory('Pendiente',this)">⏳ Pendientes</button>
+    <button onclick="renderHistory('Nula',this)">🔄 Nulas</button>
+  </div>
+  <div id="history-list"></div>
+  <button onclick="resetHistory()" class="btn-text" style="color:var(--danger);margin-top:9px">⚠️ Reiniciar historial</button>
+</div>
+
+<!-- ANÁLISIS -->
+<div id="view-analisis" class="view">
+  <div class="card"><div class="section-title">🏆 Mejor y Peor Apuesta</div><div id="analisis-bestworse"><p style="color:var(--text-muted);font-size:.83rem;text-align:center;padding:14px 0">Sin apuestas resueltas</p></div></div>
+  <div class="card">
+    <div class="section-title">🔥 Racha Actual</div>
+    <div id="racha-display" style="text-align:center;padding:8px 0">
+      <div id="racha-emoji" style="font-size:2.2rem;margin-bottom:5px">—</div>
+      <div id="racha-texto" style="font-size:.95rem;font-weight:700;color:var(--text-dark)">Sin apuestas resueltas</div>
+      <div id="racha-sub" style="font-size:.78rem;color:var(--text-muted);margin-top:3px"></div>
+      <div id="racha-dots" class="racha-badge"></div>
+    </div>
+  </div>
+  <div class="card"><div class="section-title">📊 Rendimiento por Deporte</div><div id="analisis-deportes"></div></div>
+  <div class="card"><div class="section-title">⚽ Rendimiento por Mercado (Fútbol)</div><div id="analisis-ligas"></div></div>
+  <div class="card"><div class="section-title">💡 Consejos de Gestión</div><div id="consejos-list"></div></div>
+</div>
+
+<!-- MODO PRO -->
+<div id="view-pro" class="view">
+  <div class="card">
+    <h3 style="margin-bottom:4px;color:var(--primary)">⚙️ Modo Disciplina Pro</h3>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:14px">Límites automáticos que te protegen cuando el banco baja o entras en racha negativa.</p>
+    <div class="pro-card">
+      <div class="pro-toggle-row">
+        <span class="pro-toggle-label">🔒 Modo Pro <span class="pro-badge" id="pro-badge">OFF</span></span>
+        <label class="toggle-switch"><input type="checkbox" id="pro-toggle" onchange="togglePro()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="pro-rule">⚡ <div><b>Stake bloqueado si bank cae</b><br>Bank al 80%→ max stake 5 | 60%→ max 3 | 40%→ max 2</div></div>
+      <div class="pro-rule">📅 <div><b>Límite diario de apuestas:</b> <span id="pro-daily-lbl">3</span> por día</div></div>
+      <div class="pro-rule">🚨 <div><b>Alerta tilt</b> (siempre activa): aviso si pierdes 3 seguidas</div></div>
+    </div>
+    <label>Límite diario de apuestas</label>
+    <select id="pro-daily-sel" onchange="updateProSettings()">
+      <option value="2">2 por día</option><option value="3" selected>3 por día</option>
+      <option value="5">5 por día</option><option value="10">10 por día</option><option value="99">Sin límite</option>
+    </select>
+    <label>Bank mínimo para apostar (% del inicial)</label>
+    <select id="pro-minbank-sel" onchange="updateProSettings()">
+      <option value="0">Sin mínimo</option><option value="20">20%</option>
+      <option value="30" selected>30%</option><option value="50">50%</option>
+    </select>
+    <div style="background:var(--input-bg);border-radius:10px;padding:12px;margin-top:12px;font-size:.82rem;color:var(--text-muted)">
+      <b style="color:var(--text-dark)">Estado actual:</b>
+      <div id="pro-status-txt" style="margin-top:6px;line-height:1.6">Modo Pro desactivado.</div>
+    </div>
+  </div>
+</div>
+
+<!-- GLOSARIO -->
+<div id="view-edu" class="view">
+  <h2 style="margin-bottom:13px;color:var(--primary)">Glosario de Apuestas 📖</h2>
+  <div id="diccionario-list"></div>
+</div>
+</div>
+
+<!-- MODALES -->
+<div class="modal-overlay" id="bank-modal">
+  <div class="modal-box">
+    <div class="emoji" id="bank-modal-emoji">💸</div>
+    <h2 id="bank-modal-title">Retirar</h2>
+    <p id="bank-modal-desc">Ingresa el monto.</p>
+    <input type="number" id="bank-modal-input" placeholder="Monto en COP" style="margin-bottom:12px">
+    <button onclick="confirmBankAction()" class="btn-success" id="bank-modal-btn" style="margin-bottom:8px">Confirmar</button>
+    <button onclick="closeBankModal()" class="btn-secondary">Cancelar</button>
+  </div>
+</div>
+<div class="modal-overlay" id="meta-modal">
+  <div class="modal-box">
+    <div class="emoji">🎉</div><h2>¡Meta alcanzada!</h2>
+    <p>Has llegado a tu objetivo. Retira ganancias y reinicia el ciclo con disciplina.</p>
+    <button onclick="document.getElementById('meta-modal').classList.remove('show')" class="btn-success">¡Entendido!</button>
+  </div>
+</div>
+<div class="modal-overlay" id="tilt-modal">
+  <div class="modal-box">
+    <div class="emoji">🧠</div><h2>¡Pausa obligatoria!</h2>
+    <p>Llevas <b>3 pérdidas consecutivas</b>.<br><br>El tilt destruye bankrolls. Tómate un descanso, revisa tu metodología y vuelve con la mente fría.</p>
+    <button onclick="document.getElementById('tilt-modal').classList.remove('show')" class="btn-warning" style="margin-bottom:8px">Hago una pausa</button>
+    <button onclick="document.getElementById('tilt-modal').classList.remove('show')" class="btn-secondary">Cerrar</button>
+  </div>
+</div>
+<div class="modal-overlay" id="pro-block-modal">
+  <div class="modal-box">
+    <div class="emoji">🔒</div><h2>Modo Pro activo</h2>
+    <p id="pro-block-msg">No puedes realizar esta acción.</p>
+    <button onclick="document.getElementById('pro-block-modal').classList.remove('show')" class="btn-secondary">Entendido</button>
+  </div>
+</div>
+<div class="modal-overlay" id="reto-win-modal">
+  <div class="modal-box">
+    <div class="emoji">🎉🏆🎉</div>
+    <h2 id="reto-win-title">¡Reto Completado!</h2>
+    <p id="reto-win-desc">¡Lo lograste!</p>
+    <button onclick="restartReto()" class="btn-success" style="margin-bottom:8px">🔁 Repetir reto</button>
+    <button onclick="endReto()" class="btn-secondary">Volver al inicio</button>
+  </div>
+</div>
+<div class="modal-overlay" id="reto-lose-modal">
+  <div class="modal-box">
+    <div class="emoji">💀</div><h2>Reto fallado</h2>
+    <p id="reto-lose-desc">Analiza antes de intentarlo de nuevo.</p>
+    <button onclick="restartReto()" class="btn-warning" style="margin-bottom:8px">🔁 Intentar de nuevo</button>
+    <button onclick="endReto()" class="btn-secondary">Volver al inicio</button>
+  </div>
+</div>
+
+  <script src="betmanager.js"></script>
+</body>
+</html>
