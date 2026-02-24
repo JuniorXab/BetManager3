@@ -651,7 +651,7 @@ body.dark .profile-frase{background:linear-gradient(135deg,#13172a,#1e2230)}
         </select>
         <div class="row">
           <button onclick="addLadderBet()" class="btn-success">✔ Guardar</button>
-          <button onclick="abandonReto()" class="btn-danger" style="width:130px">🚩 Abandonar</button>
+          <button onclick="retireWithWinnings()" class="btn-warning" style="width:auto;padding:8px 14px">💰 Retirarme</button>
         </div>
       </div>
       <div class="card">
@@ -687,7 +687,7 @@ body.dark .profile-frase{background:linear-gradient(135deg,#13172a,#1e2230)}
         </select>
         <div class="row">
           <button onclick="addStreakBet()" class="btn-success">✔ Guardar</button>
-          <button onclick="abandonReto()" class="btn-danger" style="width:130px">🚩 Abandonar</button>
+          <button onclick="retireWithWinnings()" class="btn-warning" style="width:auto;padding:8px 14px">💰 Retirarme</button>
         </div>
       </div>
       <div class="card">
@@ -744,7 +744,7 @@ body.dark .profile-frase{background:linear-gradient(135deg,#13172a,#1e2230)}
         </select>
         <div class="row">
           <button onclick="addSmartBet()" class="btn-success">✔ Guardar</button>
-          <button onclick="abandonReto()" class="btn-danger" style="width:130px">🚩 Abandonar</button>
+          <button onclick="retireWithWinnings()" class="btn-warning" style="width:auto;padding:8px 14px">💰 Retirarme</button>
         </div>
       </div>
       <div class="card">
@@ -1648,6 +1648,10 @@ function startReto(){
   const goal=t.mult?Math.round(init*t.mult):null;
   const target=t.target||null;
   const smartPct=t.type==='smart'?parseInt(document.getElementById('reto-smart-pct').value):null;
+  if(init>appData.bank)return alert('No tienes suficiente saldo en el bank. Tienes $'+appData.bank.toLocaleString('es-CO'));
+  // Descontar del bank al iniciar
+  appData.bank-=init;
+  appData.bankLog.unshift({type:'retiro',amount:init,note:'Inicio reto: '+nm,date:new Date().toLocaleDateString('es-CO')});
   appData.activeReto={id:Date.now(),name:nm,type:pendingRetoType,templateType:t.type,mult:t.mult,minOdds:t.minOdds||null,initialBank:init,goalBank:goal,currentBank:init,target,currentStreak:0,sport:sp,startDate:new Date().toLocaleDateString('es-CO'),bets:[],status:'active',smartPct:smartPct||60,savedBank:0};
   saveUserData();document.getElementById('reto-setup-view').style.display='none';renderRetoView();
   // Auto-fill first bet amount
@@ -1821,21 +1825,45 @@ function addStreakBet(){
   saveUserData();renderStreakView();
 }
 
-function abandonReto(){
-  if(!appData.activeReto)return;
+function retireWithWinnings(){
+  const r=appData.activeReto;if(!r)return;
+  const total=r.type==='INTELIGENTE'?(r.savedBank+r.currentBank):r.currentBank;
+  document.getElementById('retire-amount').innerText='$'+total.toLocaleString('es-CO');
+  document.getElementById('abandon-modal').dataset.retoid=r.id;
   document.getElementById('abandon-modal').classList.add('show');
 }
-function confirmAbandon(){
+function retireAddToBank(){
+  const r=appData.activeReto;if(!r)return;
+  const total=r.type==='INTELIGENTE'?(r.savedBank+r.currentBank):r.currentBank;
+  if(total>0){
+    appData.bank+=total;
+    appData.bankLog.unshift({type:'deposito',amount:total,note:'Retiro reto: '+r.name,date:new Date().toLocaleDateString('es-CO')});
+  }
+  const status=total>r.initialBank?'partial':'failed';
+  r.status=status;
+  r.smartDecision={action:'sumado_al_bank',amount:total,date:new Date().toLocaleDateString('es-CO')};
+  appData.retoHistory.push({...r,endDate:new Date().toLocaleDateString('es-CO')});
+  appData.activeReto=null;
+  triviaState={questions:[],current:0,correct:0,errors:0};
+  saveUserData();updateBankUI();
   document.getElementById('abandon-modal').classList.remove('show');
-  const r=appData.activeReto;
-  if(!r)return;
-  r.status='failed';
+  closeRetoActiveView();renderRetoView();
+}
+function retireKeepSeparate(){
+  const r=appData.activeReto;if(!r)return;
+  const total=r.type==='INTELIGENTE'?(r.savedBank+r.currentBank):r.currentBank;
+  const status=total>r.initialBank?'partial':'failed';
+  r.status=status;
+  r.smartDecision={action:'retirado_aparte',amount:total,date:new Date().toLocaleDateString('es-CO')};
   appData.retoHistory.push({...r,endDate:new Date().toLocaleDateString('es-CO')});
   appData.activeReto=null;
   triviaState={questions:[],current:0,correct:0,errors:0};
   saveUserData();
-  renderRetoView();
+  document.getElementById('abandon-modal').classList.remove('show');
+  closeRetoActiveView();renderRetoView();
 }
+function abandonReto(){retireWithWinnings();}
+function confirmAbandon(){retireKeepSeparate();}
 function restartReto(){
   const lr=appData.retoHistory[appData.retoHistory.length-1];
   ['reto-win-modal','reto-lose-modal'].forEach(id=>document.getElementById(id).classList.remove('show'));
@@ -2071,11 +2099,15 @@ function toggleDark(){const d=document.body.classList.toggle('dark');document.ge
 
 <div class="modal-overlay" id="abandon-modal">
   <div class="modal-box">
-    <div class="emoji">🚩</div>
-    <h2>¿Abandonar reto?</h2>
-    <p>Se guardará como fallado en el historial.</p>
-    <button onclick="confirmAbandon()" class="btn-danger" style="margin-bottom:8px">Sí, abandonar</button>
-    <button onclick="document.getElementById('abandon-modal').classList.remove('show')" class="btn-secondary">Cancelar</button>
+    <div class="emoji">💰</div>
+    <h2>Retirarme del reto</h2>
+    <div style="background:var(--input-bg);border-radius:12px;padding:14px;margin:10px 0;text-align:center">
+      <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:4px">Saldo actual del reto</div>
+      <div id="retire-amount" style="font-size:1.8rem;font-weight:800;color:var(--success)">$0</div>
+    </div>
+    <button onclick="retireAddToBank()" class="btn-success" style="margin-bottom:8px">➕ Sumar al Bankroll</button>
+    <button onclick="retireKeepSeparate()" class="btn-secondary" style="margin-bottom:8px">💸 Lo retiraré por fuera</button>
+    <button onclick="document.getElementById('abandon-modal').classList.remove('show')" style="background:none;border:none;color:var(--text-muted);font-size:.82rem;cursor:pointer;padding:4px">Cancelar — seguir el reto</button>
   </div>
 </div>
 
@@ -2383,26 +2415,29 @@ function showSmartEndModal(r,outcome){
 }
 
 function smartAddToBank(){
-  const total=parseFloat(document.getElementById('smart-end-modal').dataset.amount)||0;
+  const amt=parseFloat(document.getElementById('smart-end-modal').dataset.amount);
+  const total=(isNaN(amt)||amt<0)?0:amt;
   const retoId=document.getElementById('smart-end-modal').dataset.retoid;
-  appData.bank+=cleanTotal;
-  const cleanTotal=isNaN(total)||total===undefined?0:total;
-  appData.bankLog.push({type:'deposito',amount:cleanTotal,note:'Ganancias Reto Inteligente',date:new Date().toLocaleDateString('es-CO')});
-  // Register decision in reto history
+  if(total>0){
+    appData.bank+=total;
+    appData.bankLog.unshift({type:'deposito',amount:total,note:'Ganancias Reto Inteligente',date:new Date().toLocaleDateString('es-CO')});
+  }
   const rh=appData.retoHistory.find(r=>String(r.id)===String(retoId));
   if(rh)rh.smartDecision={action:'sumado_al_bank',amount:total,date:new Date().toLocaleDateString('es-CO')};
   saveUserData();updateBankUI();
   document.getElementById('smart-end-modal').classList.remove('show');
+  navTo('view-reto');
 }
 
 function smartKeepSeparate(){
-  const total=parseFloat(document.getElementById('smart-end-modal').dataset.amount)||0;
+  const amt=parseFloat(document.getElementById('smart-end-modal').dataset.amount);
+  const total=(isNaN(amt)||amt<0)?0:amt;
   const retoId=document.getElementById('smart-end-modal').dataset.retoid;
-  // Register withdrawal decision in reto history
   const rh=appData.retoHistory.find(r=>String(r.id)===String(retoId));
   if(rh)rh.smartDecision={action:'retirado_aparte',amount:total,date:new Date().toLocaleDateString('es-CO')};
   saveUserData();
   document.getElementById('smart-end-modal').classList.remove('show');
+  navTo('view-reto');
 }
 
 
